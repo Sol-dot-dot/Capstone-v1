@@ -1,0 +1,12 @@
+{
+  "name": "winsurfs/backend",
+  "description": "Backend API for Winsurfs system",
+  "require": {
+    "phpmailer/phpmailer": "^6.9"
+  },
+  "autoload": {
+    "psr-4": {
+      "Winsurfs\\": "src/"
+    }
+  }
+}
