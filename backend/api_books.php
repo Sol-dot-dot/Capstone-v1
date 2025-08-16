@@ -20,7 +20,8 @@ try {
                 SELECT b.*, c.name as category_name, c.color as category_color,
                        CONCAT(a.first_name, ' ', a.last_name) as author_name,
                        COALESCE(b.rating, 4.0) as rating,
-                       COALESCE(b.total_ratings, 0) as total_ratings
+                       COALESCE(b.total_ratings, 0) as total_ratings,
+                       b.cover_image
                 FROM books b
                 LEFT JOIN categories c ON b.category_id = c.id
                 LEFT JOIN book_authors ba ON b.id = ba.book_id
@@ -124,6 +125,7 @@ try {
                        COALESCE(b.total_ratings, 0) as total_ratings,
                        b.publication_date as publication_year,
                        b.publisher, b.pages, b.isbn,
+                       b.cover_image,
                        'English' as language
                 FROM books b
                 LEFT JOIN categories c ON b.category_id = c.id

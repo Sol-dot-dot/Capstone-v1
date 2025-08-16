@@ -5,22 +5,24 @@ header('Content-Type: text/plain');
 $DB_HOST = 'localhost';
 $DB_NAME = 'capstone_db';
 $DB_USER = 'root';
-$DB_PASS = '';
 
 try {
-    $pdo = new PDO("mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4", $DB_USER, $DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "Setting up database with sample data...\n";
     
-    echo "Setting up books database...\n";
+    // Insert sample books if none exist
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM books");
+    $count = $stmt->fetch()['count'];
     
-    // Drop and create tables
-    $pdo->exec("DROP TABLE IF EXISTS book_authors, books, authors, categories");
+    if ($count == 0) {
+        echo "Inserting sample books...\n";
+        $pdo->exec("DROP TABLE IF EXISTS book_authors, books, authors, categories");
     
-    $pdo->exec("CREATE TABLE categories (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        icon VARCHAR(50) DEFAULT 'book'
+        $pdo->exec("CREATE TABLE categories (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            icon VARCHAR(50) DEFAULT 'book'
+        )");
     )");
 
     $pdo->exec("CREATE TABLE authors (

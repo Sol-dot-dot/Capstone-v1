@@ -1,4 +1,20 @@
 <?php
+echo "Testing PHP execution\n";
+
+// Test database connection
+try {
+    require_once 'config.php';
+    echo "Database connection: SUCCESS\n";
+    
+    // Quick table check
+    $stmt = $pdo->query("SHOW TABLES");
+    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    echo "Tables found: " . implode(', ', $tables) . "\n";
+    
+} catch (Exception $e) {
+    echo "Database error: " . $e->getMessage() . "\n";
+}
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');

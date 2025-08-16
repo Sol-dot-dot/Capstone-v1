@@ -198,157 +198,390 @@ class _BookDetailPageState extends State<BookDetailPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Book cover and basic info
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 120,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: NetworkImage(_book['cover_image'] ?? ''),
-                      fit: BoxFit.cover,
-                      onError: (exception, stackTrace) {},
-                    ),
-                    color: Colors.grey[700],
-                  ),
-                  child: _book['cover_image'] == null
-                      ? const Icon(Icons.book, size: 60, color: Colors.white54)
-                      : null,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _book['title'] ?? 'Unknown Title',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'by ${_book['author_name'] ?? 'Unknown Author'}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.star, color: Colors.amber, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${_book['rating'] ?? '0.0'} (${_book['total_ratings'] ?? '0'} reviews)',
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Available: ${_book['available_copies'] ?? '0'}/${_book['total_copies'] ?? '0'}',
-                        style: TextStyle(
-                          color: (_book['available_copies'] ?? 0) > 0
-                              ? Colors.green
-                              : Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading || (_book['available_copies'] ?? 0) <= 0
-                        ? null
-                        : _borrowBook,
-                    icon: const Icon(Icons.library_books),
-                    label: Text(_isLoading ? 'Processing...' : 'Borrow Book'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F3460),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Book details
-            _buildDetailSection('Description', _book['description'] ?? 'No description available.'),
-            _buildDetailSection('Publisher', _book['publisher'] ?? 'Unknown'),
-            _buildDetailSection('Publication Year', _book['publication_year']?.toString() ?? 'Unknown'),
-            _buildDetailSection('Pages', _book['pages']?.toString() ?? 'Unknown'),
-            _buildDetailSection('Language', _book['language'] ?? 'Unknown'),
-            _buildDetailSection('ISBN', _book['isbn'] ?? 'Unknown'),
-
-            const SizedBox(height: 24),
-
-            // Reviews section
-            const Text(
-              'Reviews',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      body: _book.isEmpty
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF0F3460),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildBookHeader(),
+                  const SizedBox(height: 24),
+                  _buildBookInfo(),
+                  const SizedBox(height: 24),
+                  _buildDescription(),
+                  const SizedBox(height: 24),
+                  _buildAvailabilitySection(),
+                  const SizedBox(height: 24),
+                  _buildReviews(),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            _reviews.isEmpty
-                ? const Text(
-                    'No reviews yet.',
-                    style: TextStyle(color: Colors.white70),
+    );
+  }
+
+  Widget _buildBookHeader() {
+    final categoryColor = _book['category_color'] != null
+        ? Color(int.parse(_book['category_color'].replaceAll('#', '0xFF')))
+        : const Color(0xFF0F3460);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 120,
+          height: 160,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: categoryColor.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: _book['cover_image'] != null && _book['cover_image'].toString().isNotEmpty
+                ? Image.network(
+                    _book['cover_image'],
+                    width: 120,
+                    height: 160,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              categoryColor.withOpacity(0.8),
+                              categoryColor.withOpacity(0.4),
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.menu_book_rounded,
+                            size: 40,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              categoryColor.withOpacity(0.8),
+                              categoryColor.withOpacity(0.4),
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white.withOpacity(0.7),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
                   )
-                : Column(
-                    children: _reviews.map((review) => _buildReviewCard(review)).toList(),
+                : Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          categoryColor.withOpacity(0.8),
+                          categoryColor.withOpacity(0.4),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.menu_book_rounded,
+                        size: 40,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
                   ),
-          ],
+          ),
         ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _book['title'] ?? 'Unknown Title',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'by ${_book['author_name'] ?? 'Unknown Author'}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.star, color: Colors.amber, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_book['rating'] ?? '0.0'} (${_book['total_ratings'] ?? '0'} reviews)',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: categoryColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _book['category_name'] ?? 'Unknown Category',
+                  style: TextStyle(
+                    color: categoryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBookInfo() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16213E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Book Information',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow('Publisher', _book['publisher'] ?? 'Unknown'),
+          _buildInfoRow('Pages', '${_book['pages'] ?? 'Unknown'}'),
+          _buildInfoRow('ISBN', _book['isbn'] ?? 'Unknown'),
+          _buildInfoRow('Publication Date', _book['publication_date'] ?? 'Unknown'),
+        ],
       ),
     );
   }
 
-  Widget _buildDetailSection(String title, String content) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescription() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16213E),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
+          const Text(
+            'Description',
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Text(
-            content,
+            _book['description'] ?? 'No description available.',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvailabilitySection() {
+    final availableCopies = _book['available_copies'] ?? 0;
+    final totalCopies = _book['total_copies'] ?? 0;
+    final isAvailable = availableCopies > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16213E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Availability',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                isAvailable ? Icons.check_circle : Icons.cancel,
+                color: isAvailable ? Colors.green : Colors.red,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isAvailable ? 'Available' : 'Not Available',
+                style: TextStyle(
+                  color: isAvailable ? Colors.green : Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$availableCopies of $totalCopies copies available',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 14,
             ),
           ),
+          if (isAvailable) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // TODO: Implement borrow functionality
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Borrow functionality coming soon!'),
+                      backgroundColor: Color(0xFF0F3460),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F3460),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Borrow Book',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviews() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16213E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Reviews',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _reviews.isEmpty
+              ? const Text(
+                  'No reviews yet. Be the first to review this book!',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                )
+              : Column(
+                  children: _reviews
+                      .take(3)
+                      .map((review) => _buildReviewCard(review))
+                      .toList(),
+                ),
         ],
       ),
     );
@@ -359,7 +592,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF16213E),
+        color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -368,17 +601,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
           Row(
             children: [
               Text(
-                review['student_id'] ?? 'Anonymous',
+                review['student_name'] ?? 'Anonymous',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const Spacer(),
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < (review['rating'] ?? 0) ? Icons.star : Icons.star_border,
+                    index < (review['rating'] ?? 0)
+                        ? Icons.star
+                        : Icons.star_border,
                     color: Colors.amber,
                     size: 16,
                   );
@@ -386,13 +622,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
             ],
           ),
-          if (review['review_text'] != null && review['review_text'].isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              review['review_text'],
-              style: const TextStyle(color: Colors.white70),
+          const SizedBox(height: 8),
+          Text(
+            review['comment'] ?? '',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
             ),
-          ],
+          ),
         ],
       ),
     );

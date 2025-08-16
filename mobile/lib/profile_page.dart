@@ -48,15 +48,21 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api_profile.php?action=profile&student_id=${widget.studentId}'),
+        Uri.parse('$baseUrl/api_profile_fixed.php?action=profile&student_id=${widget.studentId}'),
       );
+      print('Profile API Response: ${response.body}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
           setState(() {
             _profile = data['profile'] ?? {};
           });
+          print('Profile loaded: $_profile');
+        } else {
+          print('Profile API error: ${data['error']}');
         }
+      } else {
+        print('Profile API HTTP error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error loading profile: $e');
@@ -66,15 +72,21 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadStats() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api_profile.php?action=stats&student_id=${widget.studentId}'),
+        Uri.parse('$baseUrl/api_profile_fixed.php?action=stats&student_id=${widget.studentId}'),
       );
+      print('Stats API Response: ${response.body}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
           setState(() {
             _stats = data['stats'] ?? {};
           });
+          print('Stats loaded: $_stats');
+        } else {
+          print('Stats API error: ${data['error']}');
         }
+      } else {
+        print('Stats API HTTP error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error loading stats: $e');
@@ -84,15 +96,21 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadNotifications() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api_profile.php?action=notifications&student_id=${widget.studentId}'),
+        Uri.parse('$baseUrl/api_profile_fixed.php?action=notifications&student_id=${widget.studentId}'),
       );
+      print('Notifications API Response: ${response.body}');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
           setState(() {
             _notifications = data['notifications'] ?? [];
           });
+          print('Notifications loaded: ${_notifications.length} items');
+        } else {
+          print('Notifications API error: ${data['error']}');
         }
+      } else {
+        print('Notifications API HTTP error: ${response.statusCode}');
       }
     } catch (e) {
       print('Error loading notifications: $e');

@@ -55,13 +55,26 @@ class _LandingPageState extends State<LandingPage> {
   Future<void> _loadBooks() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/api_books.php?action=all'));
+      print('Books API Response: ${response.statusCode}');
+      print('Books API Body: ${response.body}');
+      
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
           setState(() {
             _books = data['books'] ?? [];
           });
+          print('Loaded ${_books.length} books');
+        } else {
+          print('API returned success: false - ${data['error'] ?? 'Unknown error'}');
+          setState(() {
+            _books = [];
+          });
         }
+      } else {
+        setState(() {
+          _books = [];
+        });
       }
     } catch (e) {
       print('Error loading books: $e');
@@ -69,6 +82,71 @@ class _LandingPageState extends State<LandingPage> {
         _books = [];
       });
     }
+  }
+
+  List<Map<String, dynamic>> _getMockBooks() {
+    return [
+      {
+        'id': 1,
+        'title': 'The Great Gatsby',
+        'author_name': 'F. Scott Fitzgerald',
+        'category_name': 'Fiction',
+        'category_color': '#9b59b6',
+        'rating': 4.2,
+        'total_ratings': 150,
+        'available_copies': 3,
+        'total_copies': 5,
+        'cover_image': null,
+      },
+      {
+        'id': 2,
+        'title': 'To Kill a Mockingbird',
+        'author_name': 'Harper Lee',
+        'category_name': 'Fiction',
+        'category_color': '#9b59b6',
+        'rating': 4.5,
+        'total_ratings': 200,
+        'available_copies': 2,
+        'total_copies': 4,
+        'cover_image': null,
+      },
+      {
+        'id': 3,
+        'title': 'Clean Code',
+        'author_name': 'Robert C. Martin',
+        'category_name': 'Engineering',
+        'category_color': '#3498db',
+        'rating': 4.6,
+        'total_ratings': 120,
+        'available_copies': 4,
+        'total_copies': 6,
+        'cover_image': null,
+      },
+      {
+        'id': 4,
+        'title': '1984',
+        'author_name': 'George Orwell',
+        'category_name': 'Fiction',
+        'category_color': '#9b59b6',
+        'rating': 4.7,
+        'total_ratings': 300,
+        'available_copies': 2,
+        'total_copies': 5,
+        'cover_image': null,
+      },
+      {
+        'id': 5,
+        'title': 'Digital Marketing',
+        'author_name': 'Philip Kotler',
+        'category_name': 'Business',
+        'category_color': '#16a085',
+        'rating': 4.0,
+        'total_ratings': 78,
+        'available_copies': 3,
+        'total_copies': 4,
+        'cover_image': null,
+      },
+    ];
   }
   
   Future<void> _loadCategories() async {
@@ -80,11 +158,63 @@ class _LandingPageState extends State<LandingPage> {
           setState(() {
             _categories = data['categories'] ?? [];
           });
+        } else {
+          setState(() {
+            _categories = [];
+          });
         }
+      } else {
+        setState(() {
+          _categories = [];
+        });
       }
     } catch (e) {
       print('Error loading categories: $e');
+      setState(() {
+        _categories = [];
+      });
     }
+  }
+
+  List<Map<String, dynamic>> _getMockCategories() {
+    return [
+      {
+        'id': 1,
+        'name': 'Fiction',
+        'icon': 'auto_stories',
+        'color': '#9b59b6',
+      },
+      {
+        'id': 2,
+        'name': 'Science',
+        'icon': 'science',
+        'color': '#2ecc71',
+      },
+      {
+        'id': 3,
+        'name': 'Engineering',
+        'icon': 'engineering',
+        'color': '#3498db',
+      },
+      {
+        'id': 4,
+        'name': 'Business',
+        'icon': 'business',
+        'color': '#16a085',
+      },
+      {
+        'id': 5,
+        'name': 'History',
+        'icon': 'history_edu',
+        'color': '#e74c3c',
+      },
+      {
+        'id': 6,
+        'name': 'Technology',
+        'icon': 'computer',
+        'color': '#f39c12',
+      },
+    ];
   }
   
   Future<void> _loadRecommendations() async {
@@ -302,6 +432,15 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Widget _buildTopBooksGrid() {
+    if (_isLoading) {
+      return Container(
+        height: 200,
+        child: const Center(
+          child: CircularProgressIndicator(color: Color(0xFF0F3460)),
+        ),
+      );
+    }
+    
     if (_books.isEmpty) {
       return Container(
         height: 200,
@@ -347,25 +486,155 @@ class _LandingPageState extends State<LandingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 100,
+                    width: 140,
                     height: 140,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: book['cover_image'] != null
-                          ? DecorationImage(
-                              image: NetworkImage(book['cover_image']),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: categoryColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: book['cover_image'] == null
-                        ? const Icon(
-                            Icons.book,
-                            size: 40,
-                            color: Colors.white54,
-                          )
-                        : null,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: book['cover_image'] != null && book['cover_image'].toString().isNotEmpty
+                          ? Stack(
+                              children: [
+                                Image.network(
+                                  book['cover_image'],
+                                  width: 140,
+                                  height: 140,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            categoryColor.withOpacity(0.8),
+                                            categoryColor.withOpacity(0.4),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.menu_book_rounded,
+                                          size: 50,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            categoryColor.withOpacity(0.8),
+                                            categoryColor.withOpacity(0.4),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white.withOpacity(0.7),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          Colors.black.withOpacity(0.8),
+                                        ],
+                                      ),
+                                    ),
+                                    child: Text(
+                                      book['category_name'] ?? 'Book',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    categoryColor.withOpacity(0.8),
+                                    categoryColor.withOpacity(0.4),
+                                  ],
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.black.withOpacity(0.7),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.menu_book_rounded,
+                                          size: 50,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          book['category_name'] ?? 'Book',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.8),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -438,31 +707,45 @@ class _LandingPageState extends State<LandingPage> {
               ? Color(int.parse(category['color'].substring(1), radix: 16) + 0xFF000000)
               : Colors.blue;
           
-          return Container(
-            width: 80,
-            margin: const EdgeInsets.only(right: 15),
-            child: Column(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: categoryColor,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Icon(
-                    _getCategoryIcon(category['icon'] as String? ?? 'book'),
-                    color: Colors.white,
-                    size: 30,
+          return GestureDetector(
+            onTap: () {
+              // Navigate to category books page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SearchPage(
+                    studentId: widget.studentId,
+                    initialCategory: category['name'],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  category['name'] as String,
-                  style: const TextStyle(color: Colors.white, fontSize: 10),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              );
+            },
+            child: Container(
+              width: 80,
+              margin: const EdgeInsets.only(right: 15),
+              child: Column(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: categoryColor,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(category['icon'] as String? ?? 'book'),
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    category['name'] as String,
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           );
         },

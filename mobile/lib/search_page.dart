@@ -6,8 +6,9 @@ import 'book_detail_page.dart';
 class SearchPage extends StatefulWidget {
   final String studentId;
   final String? initialQuery;
+  final String? initialCategory;
 
-  const SearchPage({super.key, required this.studentId, this.initialQuery});
+  const SearchPage({super.key, required this.studentId, this.initialQuery, this.initialCategory});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -40,6 +41,10 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     _tabController = TabController(length: 2, vsync: this);
     if (widget.initialQuery != null) {
       _searchController.text = widget.initialQuery!;
+      _performSearch();
+    }
+    if (widget.initialCategory != null) {
+      _selectedCategory = widget.initialCategory!;
       _performSearch();
     }
     _loadFilters();
@@ -589,6 +594,7 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
     
     return DropdownButtonFormField<String>(
       value: _selectedCategory.isEmpty ? null : _selectedCategory,
+      dropdownColor: const Color(0xFF16213E),
       decoration: const InputDecoration(
         labelText: 'Category',
         labelStyle: TextStyle(color: Colors.white70),
@@ -596,7 +602,6 @@ class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateM
         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
         focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF0F3460))),
       ),
-      dropdownColor: const Color(0xFF16213E),
       style: const TextStyle(color: Colors.white),
       items: [
         const DropdownMenuItem<String>(
