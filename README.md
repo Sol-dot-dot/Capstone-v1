@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Book Borrowing System with AI-Driven Reader Engagement
 
 A comprehensive library management system with mobile app and web admin dashboard, featuring AI-powered book recommendations and chatbot assistance.
@@ -184,3 +185,11 @@ Capstone-v1/
 ---
 
 **Project Status**: ✅ **Completed** - Full-featured Book Borrowing System with AI integration ready for deployment and testing.
+=======
+Language Used:
+
+Frondend: HTML/CSS
+Backend: PHP
+DB:MySQL
+Mobile: Flutter
+>>>>>>> 201bb63c47073b2925b8a75f3ab85474b4c0e25d
