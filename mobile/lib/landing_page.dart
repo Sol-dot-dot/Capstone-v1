@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'book_detail_page.dart';
-import 'bookmarks_page.dart';
+import 'all_books_page.dart';
 import 'profile_page.dart';
+import 'borrowing_page.dart';
+import 'my_books_page.dart';
 import 'recommendations_page.dart';
 import 'analytics_page.dart';
 import 'search_page.dart';
-import 'all_books_page.dart';
+import 'book_detail_page.dart';
 import 'main.dart';
 
 class LandingPage extends StatefulWidget {
@@ -54,7 +55,7 @@ class _LandingPageState extends State<LandingPage> {
   
   Future<void> _loadBooks() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api_books.php?action=all'));
+      final response = await http.get(Uri.parse('$baseUrl/api/api_books.php?action=all'));
       print('Books API Response: ${response.statusCode}');
       print('Books API Body: ${response.body}');
       
@@ -84,74 +85,11 @@ class _LandingPageState extends State<LandingPage> {
     }
   }
 
-  List<Map<String, dynamic>> _getMockBooks() {
-    return [
-      {
-        'id': 1,
-        'title': 'The Great Gatsby',
-        'author_name': 'F. Scott Fitzgerald',
-        'category_name': 'Fiction',
-        'category_color': '#9b59b6',
-        'rating': 4.2,
-        'total_ratings': 150,
-        'available_copies': 3,
-        'total_copies': 5,
-        'cover_image': null,
-      },
-      {
-        'id': 2,
-        'title': 'To Kill a Mockingbird',
-        'author_name': 'Harper Lee',
-        'category_name': 'Fiction',
-        'category_color': '#9b59b6',
-        'rating': 4.5,
-        'total_ratings': 200,
-        'available_copies': 2,
-        'total_copies': 4,
-        'cover_image': null,
-      },
-      {
-        'id': 3,
-        'title': 'Clean Code',
-        'author_name': 'Robert C. Martin',
-        'category_name': 'Engineering',
-        'category_color': '#3498db',
-        'rating': 4.6,
-        'total_ratings': 120,
-        'available_copies': 4,
-        'total_copies': 6,
-        'cover_image': null,
-      },
-      {
-        'id': 4,
-        'title': '1984',
-        'author_name': 'George Orwell',
-        'category_name': 'Fiction',
-        'category_color': '#9b59b6',
-        'rating': 4.7,
-        'total_ratings': 300,
-        'available_copies': 2,
-        'total_copies': 5,
-        'cover_image': null,
-      },
-      {
-        'id': 5,
-        'title': 'Digital Marketing',
-        'author_name': 'Philip Kotler',
-        'category_name': 'Business',
-        'category_color': '#16a085',
-        'rating': 4.0,
-        'total_ratings': 78,
-        'available_copies': 3,
-        'total_copies': 4,
-        'cover_image': null,
-      },
-    ];
-  }
+  // Removed hardcoded mock data - now using API only
   
   Future<void> _loadCategories() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api_books.php?action=categories'));
+      final response = await http.get(Uri.parse('$baseUrl/api/api_books.php?action=categories'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success']) {
@@ -254,26 +192,27 @@ class _LandingPageState extends State<LandingPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A2E),
       body: SafeArea(
-        child: _buildCurrentScreen(),
+        child: _buildCurrentPage(),
       ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
-  Widget _buildCurrentScreen() {
+  Widget _buildCurrentPage() {
     switch (_currentIndex) {
       case 0:
         return _buildHomeScreen();
       case 1:
-        return RecommendationsPage(studentId: widget.studentId);
+        return MyBooksPage(studentId: widget.studentId);
       case 2:
-        return AnalyticsPage(studentId: widget.studentId);
+        return RecommendationsPage(studentId: widget.studentId);
       case 3:
-        return BookmarksPage(studentId: widget.studentId);
+        return AnalyticsPage(studentId: widget.studentId);
       case 4:
-        // AI Chat placeholder - will be implemented later
-        return _buildHomeScreen();
+        return SearchPage(studentId: widget.studentId);
       case 5:
+        return AllBooksPage(studentId: widget.studentId);
+      case 6:
         return ProfilePage(studentId: widget.studentId);
       default:
         return _buildHomeScreen();
@@ -875,8 +814,12 @@ class _LandingPageState extends State<LandingPage> {
       },
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
+          icon: Icon(Icons.book),
+          label: 'Library',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.my_library_books),
+          label: 'My Books',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.auto_awesome),
@@ -887,12 +830,12 @@ class _LandingPageState extends State<LandingPage> {
           label: 'Analytics',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.bookmark),
-          label: 'Bookmarks',
+          icon: Icon(Icons.search),
+          label: 'Search',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.smart_toy),
-          label: 'AI Chat',
+          icon: Icon(Icons.book_outlined),
+          label: 'All Books',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person),

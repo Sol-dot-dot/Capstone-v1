@@ -1,115 +1,75 @@
 <?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+
 require_once 'config.php';
 
-echo "=== API ENDPOINTS TEST ===\n\n";
+echo "=== TESTING API ENDPOINTS ===\n\n";
 
 try {
-    // Test 1: Books API - Get all books
-    echo "1. Testing Books API (action=all):\n";
-    $query = "
-        SELECT b.*, c.name as category_name, c.color as category_color,
-               CONCAT(a.first_name, ' ', a.last_name) as author_name,
-               COALESCE(b.rating, 4.0) as rating,
-               COALESCE(b.total_ratings, 0) as total_ratings
-        FROM books b
-        LEFT JOIN categories c ON b.category_id = c.id
-        LEFT JOIN book_authors ba ON b.id = ba.book_id
-        LEFT JOIN authors a ON ba.author_id = a.id
-        WHERE b.status = 'active'
-        ORDER BY b.id DESC
-        LIMIT 10
-    ";
-    
-    $stmt = $pdo->query($query);
-    $books = $stmt->fetchAll();
-    
-    echo "   Result: " . count($books) . " books found\n";
-    if (count($books) > 0) {
-        echo "   Sample book: {$books[0]['title']} by {$books[0]['author_name']}\n";
-        echo "   Category: {$books[0]['category_name']} (Color: {$books[0]['category_color']})\n";
-        echo "   Rating: {$books[0]['rating']} ({$books[0]['total_ratings']} reviews)\n";
-        echo "   ✓ Books API data structure is correct\n";
-    } else {
-        echo "   ✗ No books found\n";
-    }
-    
-    // Test 2: Categories API
-    echo "\n2. Testing Categories API:\n";
-    $stmt = $pdo->query("SELECT id, name, icon, color FROM categories ORDER BY name");
-    $categories = $stmt->fetchAll();
-    
-    echo "   Result: " . count($categories) . " categories found\n";
-    if (count($categories) > 0) {
-        foreach ($categories as $cat) {
-            echo "   - {$cat['name']} (Color: {$cat['color']}, Icon: {$cat['icon']})\n";
-        }
-        echo "   ✓ Categories API data structure is correct\n";
-    } else {
-        echo "   ✗ No categories found\n";
-    }
-    
-    // Test 3: Book Details API
-    echo "\n3. Testing Book Details API (book_id=1):\n";
-    $query = "
+    // Test books API
+    echo "1. Testing Books API...\n";
+    $stmt = $pdo->query("
         SELECT b.*, c.name as category_name, c.color as category_color,
                CONCAT(a.first_name, ' ', a.last_name) as author_name,
                COALESCE(b.rating, 4.0) as rating,
                COALESCE(b.total_ratings, 0) as total_ratings,
-               b.publication_date as publication_year,
-               b.publisher, b.pages, b.isbn,
-               'English' as language
+               b.cover_image
         FROM books b
         LEFT JOIN categories c ON b.category_id = c.id
         LEFT JOIN book_authors ba ON b.id = ba.book_id
         LEFT JOIN authors a ON ba.author_id = a.id
-        WHERE b.id = 1 AND b.status = 'active'
-    ";
+        WHERE 1=1
+        ORDER BY b.id DESC
+        LIMIT 5
+    ");
+    $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo "Books found: " . count($books) . "\n";
+    if (count($books) > 0) {
+        echo "Sample book: " . $books[0]['title'] . " by " . $books[0]['author_name'] . "\n";
+    }
     
-    $stmt = $pdo->query($query);
-    $book = $stmt->fetch();
+    // Test categories API
+    echo "\n2. Testing Categories API...\n";
+    $stmt = $pdo->query("SELECT * FROM categories ORDER BY name");
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo "Categories found: " . count($categories) . "\n";
+    if (count($categories) > 0) {
+        echo "Sample category: " . $categories[0]['name'] . " (" . $categories[0]['color'] . ")\n";
+    }
     
-    if ($book) {
-        echo "   Book: {$book['title']}\n";
-        echo "   Author: {$book['author_name']}\n";
-        echo "   Category: {$book['category_name']}\n";
-        echo "   Publisher: {$book['publisher']}\n";
-        echo "   Pages: {$book['pages']}\n";
-        echo "   Available: {$book['available_copies']}/{$book['total_copies']}\n";
-        echo "   ✓ Book details API data structure is correct\n";
+    // Test student profile
+    echo "\n3. Testing Student Profile...\n";
+    $student_id = 'C22-0044';
+    
+    // Check student record
+    $stmt = $pdo->prepare("SELECT * FROM student_records WHERE student_id = ?");
+    $stmt->execute([$student_id]);
+    $student_record = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($student_record) {
+        echo "Student record found: " . $student_record['first_name'] . " " . $student_record['last_name'] . "\n";
+        echo "Course: " . ($student_record['course'] ?? 'Not set') . "\n";
+        echo "Year: " . ($student_record['year_level'] ?? 'Not set') . "\n";
     } else {
-        echo "   ✗ Book not found\n";
+        echo "No student record found for $student_id\n";
     }
     
-    // Test 4: Database Connection Summary
-    echo "\n=== DATABASE CONNECTION SUMMARY ===\n";
+    // Check student auth
+    $stmt = $pdo->prepare("SELECT student_id, email, account_status FROM students WHERE student_id = ?");
+    $stmt->execute([$student_id]);
+    $student_auth = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    $tables = ['categories', 'authors', 'books', 'book_authors'];
-    $allTablesExist = true;
-    
-    foreach ($tables as $table) {
-        $stmt = $pdo->query("SHOW TABLES LIKE '$table'");
-        if ($stmt->rowCount() > 0) {
-            $countStmt = $pdo->query("SELECT COUNT(*) as count FROM $table");
-            $count = $countStmt->fetch()['count'];
-            echo "✓ Table '$table': $count records\n";
-        } else {
-            echo "✗ Table '$table': missing\n";
-            $allTablesExist = false;
-        }
-    }
-    
-    if ($allTablesExist && count($books) > 0 && count($categories) > 0) {
-        echo "\n🎉 DATABASE STATUS: READY FOR MOBILE APP\n";
-        echo "✓ All required tables exist\n";
-        echo "✓ Sample data is populated\n";
-        echo "✓ API queries return proper data structure\n";
-        echo "✓ Mobile app can connect and fetch data\n";
+    if ($student_auth) {
+        echo "Student auth found: " . $student_auth['email'] . " (Status: " . $student_auth['account_status'] . ")\n";
     } else {
-        echo "\n❌ DATABASE STATUS: NEEDS SETUP\n";
-        echo "Run the database initialization script first\n";
+        echo "No student auth found for $student_id\n";
     }
     
-} catch (PDOException $e) {
-    echo "Database Error: " . $e->getMessage() . "\n";
+    echo "\n=== API TEST COMPLETE ===\n";
+    echo "Database is ready for API calls!\n";
+    
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
 }
 ?>

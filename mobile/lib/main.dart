@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'landing_page.dart';
+import 'borrowing_page.dart';
+import 'my_books_page.dart';
 
 // Backend base URL for API calls
 // Android Emulator: host machine is 10.0.2.2; our PHP server uses port 8080
@@ -53,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$kBaseUrl/working_login.php'),
+        Uri.parse('$kBaseUrl/auth/login.php'),
         body: {
           'student_id': _studentIdController.text.trim(),
           'password': _passwordController.text,

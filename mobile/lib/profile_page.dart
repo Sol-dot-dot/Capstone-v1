@@ -48,7 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api_profile_fixed.php?action=profile&student_id=${widget.studentId}'),
+        Uri.parse('$baseUrl/api/api_profile.php?action=profile&student_id=${widget.studentId}'),
       );
       print('Profile API Response: ${response.body}');
       if (response.statusCode == 200) {
@@ -72,7 +72,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadStats() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api_profile_fixed.php?action=stats&student_id=${widget.studentId}'),
+        Uri.parse('$baseUrl/api/api_profile.php?action=stats&student_id=${widget.studentId}'),
       );
       print('Stats API Response: ${response.body}');
       if (response.statusCode == 200) {

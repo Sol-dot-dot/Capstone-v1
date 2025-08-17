@@ -1,0 +1,411 @@
+<?php
+require_once '../config.php';
+
+try {
+    echo "Setting up complete database schema and data...\n";
+    
+    // Drop existing tables to ensure clean setup
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+    $pdo->exec("DROP TABLE IF EXISTS book_authors");
+    $pdo->exec("DROP TABLE IF EXISTS books");
+    $pdo->exec("DROP TABLE IF EXISTS authors");
+    $pdo->exec("DROP TABLE IF EXISTS categories");
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+    
+    // Create categories table
+    $pdo->exec("
+        CREATE TABLE categories (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL UNIQUE,
+            description TEXT,
+            icon VARCHAR(50),
+            color VARCHAR(7),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    
+    // Create authors table
+    $pdo->exec("
+        CREATE TABLE authors (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            first_name VARCHAR(100) NOT NULL,
+            last_name VARCHAR(100) NOT NULL,
+            biography TEXT,
+            birth_date DATE,
+            nationality VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    
+    // Create books table
+    $pdo->exec("
+        CREATE TABLE books (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            isbn VARCHAR(20) UNIQUE,
+            title VARCHAR(255) NOT NULL,
+            subtitle VARCHAR(255),
+            description TEXT,
+            publication_date DATE,
+            publisher VARCHAR(255),
+            pages INT,
+            language VARCHAR(50) DEFAULT 'English',
+            cover_image_url VARCHAR(500),
+            total_copies INT DEFAULT 1,
+            available_copies INT DEFAULT 1,
+            category_id INT,
+            status ENUM('active', 'inactive') DEFAULT 'active',
+            rating DECIMAL(3,2) DEFAULT 4.0,
+            total_ratings INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+        )
+    ");
+    
+    // Create book_authors junction table
+    $pdo->exec("
+        CREATE TABLE book_authors (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            book_id INT NOT NULL,
+            author_id INT NOT NULL,
+            FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+            FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_book_author (book_id, author_id)
+        )
+    ");
+    
+    // Insert categories
+    $pdo->exec("
+        INSERT INTO categories (id, name, description, icon, color) VALUES
+        (1, 'Fiction', 'Novels and fictional works', 'auto_stories', '#9b59b6'),
+        (2, 'Science', 'Scientific research and discoveries', 'science', '#2ecc71'),
+        (3, 'Engineering', 'Technical and engineering books', 'engineering', '#3498db'),
+        (4, 'Business', 'Business and management books', 'business', '#16a085'),
+        (5, 'History', 'Historical books and biographies', 'history_edu', '#e74c3c'),
+        (6, 'Technology', 'Computer science and technology', 'computer', '#f39c12'),
+        (7, 'Philosophy', 'Philosophy and ethics', 'psychology', '#8e44ad'),
+        (8, 'Art', 'Art and design books', 'palette', '#e67e22')
+    ");
+    
+    // Insert authors
+    $pdo->exec("
+        INSERT INTO authors (id, first_name, last_name, biography, nationality) VALUES
+        (1, 'F. Scott', 'Fitzgerald', 'American novelist and short story writer', 'American'),
+        (2, 'Harper', 'Lee', 'American novelist known for To Kill a Mockingbird', 'American'),
+        (3, 'George', 'Orwell', 'English novelist and essayist', 'British'),
+        (4, 'Robert C.', 'Martin', 'Software engineer and author', 'American'),
+        (5, 'Thomas H.', 'Cormen', 'Computer scientist and professor', 'American'),
+        (6, 'Philip', 'Kotler', 'Marketing author and professor', 'American'),
+        (7, 'Yuval Noah', 'Harari', 'Israeli historian and philosopher', 'Israeli'),
+        (8, 'Michelle', 'Obama', 'Former First Lady and author', 'American'),
+        (9, 'Steve', 'Jobs', 'Co-founder of Apple Inc.', 'American'),
+        (10, 'Leonardo', 'da Vinci', 'Renaissance polymath', 'Italian')
+    ");
+    
+    // Insert books
+    $pdo->exec("
+        INSERT INTO books (id, isbn, title, description, publication_date, publisher, pages, category_id, total_copies, available_copies, rating, total_ratings) VALUES
+        (1, '978-0-7432-7356-5', 'The Great Gatsby', 'A classic American novel set in the Jazz Age, exploring themes of wealth, love, and the American Dream through the eyes of narrator Nick Carraway.', '1925-04-10', 'Scribner', 180, 1, 5, 3, 4.2, 150),
+        (2, '978-0-06-112008-4', 'To Kill a Mockingbird', 'A gripping tale of racial injustice and childhood innocence in the American South, told through the perspective of Scout Finch.', '1960-07-11', 'J.B. Lippincott & Co.', 281, 1, 4, 2, 4.5, 200),
+        (3, '978-0-452-28423-4', '1984', 'A dystopian social science fiction novel about totalitarian control and surveillance in a society where Big Brother watches everything.', '1949-06-08', 'Secker & Warburg', 328, 1, 6, 4, 4.7, 300),
+        (4, '978-0-13-208670-1', 'Clean Code', 'A handbook of agile software craftsmanship for writing maintainable, readable, and efficient code that other developers can understand.', '2008-08-01', 'Prentice Hall', 464, 6, 8, 5, 4.6, 120),
+        (5, '978-0-262-03384-8', 'Introduction to Algorithms', 'Comprehensive guide to algorithms and data structures, widely used in computer science education and professional development.', '2009-07-31', 'MIT Press', 1312, 6, 3, 1, 4.8, 89),
+        (6, '978-0-13-449507-6', 'Marketing Management', 'Comprehensive guide to modern marketing principles and practices in the digital age, covering strategy, implementation, and analysis.', '2015-01-15', 'Pearson', 832, 4, 4, 3, 4.0, 78),
+        (7, '978-0-06-231609-7', 'Sapiens', 'A brief history of humankind from the Stone Age to the present, exploring how Homo sapiens came to dominate the world.', '2014-02-10', 'Harper', 443, 5, 5, 2, 4.4, 180),
+        (8, '978-1-5247-6313-8', 'Becoming', 'Memoir by former First Lady Michelle Obama, chronicling her life from childhood through her years in the White House.', '2018-11-13', 'Crown Publishing', 448, 5, 6, 4, 4.6, 250),
+        (9, '978-1-4516-4853-9', 'Steve Jobs', 'The exclusive biography of Steve Jobs, based on more than forty interviews with Jobs conducted over two years.', '2011-10-24', 'Simon & Schuster', 656, 5, 3, 2, 4.3, 95),
+        (10, '978-0-385-50395-7', 'The Innovators', 'The story of the people who created the computer and the Internet, from Ada Lovelace to Bill Gates.', '2014-10-07', 'Simon & Schuster', 560, 6, 4, 3, 4.1, 67)
+    ");
+    
+    // Link books to authors
+    $pdo->exec("
+        INSERT INTO book_authors (book_id, author_id) VALUES
+        (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), 
+        (6, 6), (7, 7), (8, 8), (9, 9), (10, 9)
+    ");
+    
+    echo "Database setup completed successfully!\n";
+    echo "Added 8 categories, 10 authors, and 10 books with proper relationships.\n";
+
+    $tables = ['notifications', 'recommendations', 'reading_preferences', 'bookmarks', 'book_reviews', 'borrowings', 'book_authors', 'books', 'authors', 'categories', 'student_logins', 'students', 'student_records'];
+    foreach ($tables as $table) {
+        $pdo->exec("DROP TABLE IF EXISTS $table");
+    }
+
+    // Create all tables
+    $pdo->exec("CREATE TABLE categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT,
+        icon VARCHAR(50) DEFAULT 'book',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE authors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        bio TEXT,
+        birth_year INT,
+        nationality VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE books (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        isbn VARCHAR(20) UNIQUE,
+        category_id INT,
+        description TEXT,
+        publisher VARCHAR(255),
+        publication_year INT,
+        pages INT,
+        language VARCHAR(50) DEFAULT 'English',
+        cover_image VARCHAR(500),
+        available_copies INT DEFAULT 1,
+        total_copies INT DEFAULT 1,
+        rating DECIMAL(3,2) DEFAULT 0.00,
+        total_ratings INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+    )");
+
+    $pdo->exec("CREATE TABLE book_authors (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        book_id INT,
+        author_id INT,
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_book_author (book_id, author_id)
+    )");
+
+    $pdo->exec("CREATE TABLE student_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id VARCHAR(20) NOT NULL UNIQUE,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        course VARCHAR(100) NOT NULL,
+        year_level INT NOT NULL,
+        email VARCHAR(255),
+        phone VARCHAR(20),
+        address TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $pdo->exec("CREATE TABLE students (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id VARCHAR(20) NOT NULL UNIQUE,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        account_status ENUM('active', 'suspended', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES student_records(student_id)
+    )");
+
+    $pdo->exec("CREATE TABLE borrowings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id VARCHAR(20) NOT NULL,
+        book_id INT NOT NULL,
+        borrowed_date DATE NOT NULL,
+        due_date DATE NOT NULL,
+        returned_date DATE NULL,
+        status ENUM('active', 'returned', 'overdue') DEFAULT 'active',
+        fine_amount DECIMAL(10,2) DEFAULT 0.00,
+        fine_paid BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES student_records(student_id),
+        FOREIGN KEY (book_id) REFERENCES books(id)
+    )");
+
+    $pdo->exec("CREATE TABLE book_reviews (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        book_id INT NOT NULL,
+        student_id VARCHAR(20) NOT NULL,
+        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        review_text TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES student_records(student_id),
+        UNIQUE KEY unique_review (book_id, student_id)
+    )");
+
+    $pdo->exec("CREATE TABLE bookmarks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id VARCHAR(20) NOT NULL,
+        book_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES student_records(student_id),
+        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_bookmark (student_id, book_id)
+    )");
+
+    // Insert categories
+    $categories = [
+        ['Fiction', 'Fictional stories and novels', 'book'],
+        ['Science Fiction', 'Futuristic and scientific fiction', 'rocket'],
+        ['Mystery', 'Mystery and detective stories', 'search'],
+        ['Romance', 'Love and romantic stories', 'heart'],
+        ['Fantasy', 'Fantasy and magical stories', 'magic'],
+        ['Biography', 'Life stories of real people', 'person'],
+        ['History', 'Historical books and events', 'time'],
+        ['Science', 'Scientific and educational books', 'flask'],
+        ['Technology', 'Technology and computing books', 'computer'],
+        ['Self-Help', 'Personal development books', 'lightbulb']
+    ];
+
+    foreach ($categories as $cat) {
+        $pdo->prepare("INSERT INTO categories (name, description, icon) VALUES (?, ?, ?)")
+             ->execute($cat);
+    }
+
+    // Insert authors
+    $authors = [
+        ['J.K. Rowling', 'British author best known for Harry Potter series', 1965, 'British'],
+        ['Stephen King', 'American author of horror and supernatural fiction', 1947, 'American'],
+        ['Agatha Christie', 'British crime novelist', 1890, 'British'],
+        ['Isaac Asimov', 'American science fiction writer', 1920, 'American'],
+        ['Jane Austen', 'English novelist', 1775, 'British'],
+        ['George Orwell', 'English novelist and essayist', 1903, 'British'],
+        ['Harper Lee', 'American novelist', 1926, 'American'],
+        ['F. Scott Fitzgerald', 'American novelist', 1896, 'American'],
+        ['Ernest Hemingway', 'American novelist and journalist', 1899, 'American'],
+        ['Mark Twain', 'American writer and humorist', 1835, 'American'],
+        ['Charles Dickens', 'English writer and social critic', 1812, 'British'],
+        ['William Shakespeare', 'English playwright and poet', 1564, 'British'],
+        ['Dan Brown', 'American author of thriller fiction', 1964, 'American'],
+        ['John Grisham', 'American novelist and attorney', 1955, 'American'],
+        ['Paulo Coelho', 'Brazilian lyricist and novelist', 1947, 'Brazilian']
+    ];
+
+    foreach ($authors as $author) {
+        $pdo->prepare("INSERT INTO authors (name, bio, birth_year, nationality) VALUES (?, ?, ?, ?)")
+             ->execute($author);
+    }
+
+    // Insert 30 books
+    $books = [
+        ['Harry Potter and the Philosopher\'s Stone', '9780747532699', 5, 'A young wizard discovers his magical heritage', 'Bloomsbury', 1997, 223, 'English', 'https://covers.openlibrary.org/b/isbn/9780747532699-L.jpg', 3, 5, 4.8, 1250],
+        ['The Shining', '9780385121675', 1, 'A family becomes winter caretakers of an isolated hotel', 'Doubleday', 1977, 447, 'English', 'https://covers.openlibrary.org/b/isbn/9780385121675-L.jpg', 2, 3, 4.2, 890],
+        ['Murder on the Orient Express', '9780062693662', 3, 'Detective Poirot solves a murder on a train', 'William Morrow', 1934, 256, 'English', 'https://covers.openlibrary.org/b/isbn/9780062693662-L.jpg', 4, 4, 4.5, 1100],
+        ['Foundation', '9780553293357', 2, 'The collapse and renewal of a galactic empire', 'Spectra', 1951, 244, 'English', 'https://covers.openlibrary.org/b/isbn/9780553293357-L.jpg', 2, 3, 4.3, 750],
+        ['Pride and Prejudice', '9780141439518', 4, 'A romantic novel about manners and marriage', 'Penguin Classics', 1813, 432, 'English', 'https://covers.openlibrary.org/b/isbn/9780141439518-L.jpg', 5, 6, 4.6, 2100],
+        ['1984', '9780451524935', 1, 'A dystopian social science fiction novel', 'Signet Classics', 1949, 328, 'English', 'https://covers.openlibrary.org/b/isbn/9780451524935-L.jpg', 3, 4, 4.7, 1800],
+        ['To Kill a Mockingbird', '9780061120084', 1, 'A story of racial injustice and childhood innocence', 'Harper Perennial', 1960, 376, 'English', 'https://covers.openlibrary.org/b/isbn/9780061120084-L.jpg', 4, 5, 4.8, 2500],
+        ['The Great Gatsby', '9780743273565', 1, 'The Jazz Age and the American Dream', 'Scribner', 1925, 180, 'English', 'https://covers.openlibrary.org/b/isbn/9780743273565-L.jpg', 6, 7, 4.4, 1600],
+        ['The Old Man and the Sea', '9780684801223', 1, 'An aging fisherman\'s struggle with a giant marlin', 'Scribner', 1952, 127, 'English', 'https://covers.openlibrary.org/b/isbn/9780684801223-L.jpg', 3, 4, 4.1, 950],
+        ['Adventures of Huckleberry Finn', '9780486280615', 1, 'A boy\'s journey down the Mississippi River', 'Dover Publications', 1884, 366, 'English', 'https://covers.openlibrary.org/b/isbn/9780486280615-L.jpg', 2, 3, 4.2, 1200],
+        ['A Tale of Two Cities', '9780486406510', 7, 'London and Paris during the French Revolution', 'Dover Publications', 1859, 448, 'English', 'https://covers.openlibrary.org/b/isbn/9780486406510-L.jpg', 3, 4, 4.3, 1400],
+        ['Romeo and Juliet', '9780486275437', 1, 'The tragic love story of two young star-crossed lovers', 'Dover Publications', 1597, 96, 'English', 'https://covers.openlibrary.org/b/isbn/9780486275437-L.jpg', 5, 6, 4.5, 1800],
+        ['The Da Vinci Code', '9780307474278', 3, 'A mystery involving secret societies and religious history', 'Anchor', 2003, 454, 'English', 'https://covers.openlibrary.org/b/isbn/9780307474278-L.jpg', 4, 5, 4.1, 2200],
+        ['The Firm', '9780385416634', 3, 'A young lawyer discovers his law firm\'s dark secrets', 'Doubleday', 1991, 421, 'English', 'https://covers.openlibrary.org/b/isbn/9780385416634-L.jpg', 2, 3, 4.2, 1100],
+        ['The Alchemist', '9780061122415', 10, 'A shepherd\'s journey to find his personal legend', 'HarperOne', 1988, 163, 'English', 'https://covers.openlibrary.org/b/isbn/9780061122415-L.jpg', 6, 8, 4.6, 3200],
+        ['Dune', '9780441172719', 2, 'A desert planet and political intrigue', 'Ace', 1965, 688, 'English', 'https://covers.openlibrary.org/b/isbn/9780441172719-L.jpg', 2, 3, 4.4, 1500],
+        ['The Hobbit', '9780547928227', 5, 'A hobbit\'s unexpected journey', 'Houghton Mifflin Harcourt', 1937, 366, 'English', 'https://covers.openlibrary.org/b/isbn/9780547928227-L.jpg', 4, 5, 4.7, 2800],
+        ['Fahrenheit 451', '9781451673319', 2, 'A dystopian future where books are banned', 'Simon & Schuster', 1953, 249, 'English', 'https://covers.openlibrary.org/b/isbn/9781451673319-L.jpg', 3, 4, 4.3, 1300],
+        ['The Catcher in the Rye', '9780316769174', 1, 'A teenager\'s alienation in New York City', 'Little, Brown', 1951, 277, 'English', 'https://covers.openlibrary.org/b/isbn/9780316769174-L.jpg', 2, 3, 4.0, 1700],
+        ['Lord of the Flies', '9780571056866', 1, 'British boys stranded on an uninhabited island', 'Faber & Faber', 1954, 248, 'English', 'https://covers.openlibrary.org/b/isbn/9780571056866-L.jpg', 3, 4, 4.1, 1400],
+        ['The Chronicles of Narnia', '9780066238500', 5, 'Children discover a magical world', 'HarperCollins', 1950, 767, 'English', 'https://covers.openlibrary.org/b/isbn/9780066238500-L.jpg', 5, 6, 4.5, 2100],
+        ['Brave New World', '9780060850524', 2, 'A dystopian society of the future', 'Harper Perennial', 1932, 268, 'English', 'https://covers.openlibrary.org/b/isbn/9780060850524-L.jpg', 2, 3, 4.2, 1600],
+        ['The Hunger Games', '9780439023528', 2, 'A televised fight to the death', 'Scholastic Press', 2008, 374, 'English', 'https://covers.openlibrary.org/b/isbn/9780439023528-L.jpg', 4, 6, 4.3, 2900],
+        ['Gone Girl', '9780307588364', 3, 'A marriage gone terribly wrong', 'Crown', 2012, 419, 'English', 'https://covers.openlibrary.org/b/isbn/9780307588364-L.jpg', 3, 4, 4.0, 1800],
+        ['The Girl with the Dragon Tattoo', '9780307454546', 3, 'A journalist and hacker investigate disappearances', 'Vintage', 2005, 590, 'English', 'https://covers.openlibrary.org/b/isbn/9780307454546-L.jpg', 2, 3, 4.2, 2200],
+        ['Life of Pi', '9780156027328', 1, 'A boy survives 227 days at sea with a tiger', 'Harcourt', 2001, 319, 'English', 'https://covers.openlibrary.org/b/isbn/9780156027328-L.jpg', 3, 4, 4.4, 1900],
+        ['The Kite Runner', '9781594631931', 1, 'Friendship and redemption in Afghanistan', 'Riverhead Books', 2003, 371, 'English', 'https://covers.openlibrary.org/b/isbn/9781594631931-L.jpg', 2, 3, 4.3, 2100],
+        ['The Book Thief', '9780375842207', 7, 'A girl\'s love of books during WWII', 'Knopf', 2005, 552, 'English', 'https://covers.openlibrary.org/b/isbn/9780375842207-L.jpg', 4, 5, 4.6, 2400],
+        ['Where the Crawdads Sing', '9780735219090', 3, 'A mystery set in the marshlands of North Carolina', 'G.P. Putnam\'s Sons', 2018, 370, 'English', 'https://covers.openlibrary.org/b/isbn/9780735219090-L.jpg', 5, 7, 4.5, 3100],
+        ['The Seven Husbands of Evelyn Hugo', '9781501139239', 4, 'A reclusive Hollywood icon tells her life story', 'Atria Books', 2017, 400, 'English', 'https://covers.openlibrary.org/b/isbn/9781501139239-L.jpg', 3, 5, 4.7, 2800]
+    ];
+
+    foreach ($books as $i => $book) {
+        $stmt = $pdo->prepare("INSERT INTO books (title, isbn, category_id, description, publisher, publication_year, pages, language, cover_image, available_copies, total_copies, rating, total_ratings) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute($book);
+        
+        // Link books to authors (simplified - each book gets one author)
+        $author_id = ($i % 15) + 1; // Cycle through authors
+        $book_id = $pdo->lastInsertId();
+        $pdo->prepare("INSERT INTO book_authors (book_id, author_id) VALUES (?, ?)")
+             ->execute([$book_id, $author_id]);
+    }
+
+    // Insert 5 student records
+    $students_data = [
+        ['C22-0044', 'Rhodcelister', 'Duallo', 'BSIT', 3, 'rhodcelister.duallo@my.smciligan.edu.ph', '09123456789', 'Iligan City, Philippines'],
+        ['C22-0045', 'Maria', 'Santos', 'BSCS', 2, 'maria.santos@my.smciligan.edu.ph', '09234567890', 'Cagayan de Oro, Philippines'],
+        ['C22-0046', 'John', 'Dela Cruz', 'BSIT', 4, 'john.delacruz@my.smciligan.edu.ph', '09345678901', 'Butuan City, Philippines'],
+        ['C22-0047', 'Anna', 'Reyes', 'BSCS', 1, 'anna.reyes@my.smciligan.edu.ph', '09456789012', 'Dipolog City, Philippines'],
+        ['C22-0048', 'Michael', 'Garcia', 'BSIT', 3, 'michael.garcia@my.smciligan.edu.ph', '09567890123', 'Ozamiz City, Philippines']
+    ];
+
+    foreach ($students_data as $student) {
+        $pdo->prepare("INSERT INTO student_records (student_id, first_name, last_name, course, year_level, email, phone, address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+             ->execute($student);
+        
+        // Create login accounts for all students
+        $password_hash = password_hash('test123', PASSWORD_BCRYPT);
+        $pdo->prepare("INSERT INTO students (student_id, email, password_hash) VALUES (?, ?, ?)")
+             ->execute([$student[0], $student[5], $password_hash]);
+    }
+
+    // Add some sample borrowings
+    $borrowings = [
+        ['C22-0044', 1, '2024-01-15', '2024-02-15', null, 'active'],
+        ['C22-0044', 15, '2024-01-10', '2024-02-10', '2024-02-08', 'returned'],
+        ['C22-0045', 3, '2024-01-20', '2024-02-20', null, 'active'],
+        ['C22-0046', 7, '2024-01-05', '2024-02-05', null, 'overdue'],
+        ['C22-0047', 12, '2024-01-25', '2024-02-25', null, 'active']
+    ];
+
+    foreach ($borrowings as $borrowing) {
+        $pdo->prepare("INSERT INTO borrowings (student_id, book_id, borrowed_date, due_date, returned_date, status) VALUES (?, ?, ?, ?, ?, ?)")
+             ->execute($borrowing);
+    }
+
+    // Add some bookmarks
+    $bookmarks = [
+        ['C22-0044', 5], ['C22-0044', 17], ['C22-0044', 29],
+        ['C22-0045', 2], ['C22-0045', 8],
+        ['C22-0046', 11], ['C22-0047', 23]
+    ];
+
+    foreach ($bookmarks as $bookmark) {
+        $pdo->prepare("INSERT INTO bookmarks (student_id, book_id) VALUES (?, ?)")
+             ->execute($bookmark);
+    }
+
+    // Add some reviews
+    $reviews = [
+        [1, 'C22-0044', 5, 'Amazing start to the Harry Potter series!'],
+        [15, 'C22-0044', 4, 'Great philosophical novel about following your dreams.'],
+        [7, 'C22-0046', 5, 'A timeless classic that everyone should read.'],
+        [12, 'C22-0047', 4, 'Beautiful tragic love story.'],
+        [3, 'C22-0045', 4, 'Classic Agatha Christie mystery!']
+    ];
+
+    foreach ($reviews as $review) {
+        $pdo->prepare("INSERT INTO book_reviews (book_id, student_id, rating, review_text) VALUES (?, ?, ?, ?)")
+             ->execute($review);
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Complete database setup successful!',
+        'data' => [
+            'categories' => 10,
+            'authors' => 15,
+            'books' => 30,
+            'students' => 5,
+            'borrowings' => 5,
+            'bookmarks' => 7,
+            'reviews' => 5
+        ],
+        'login_credentials' => [
+            'C22-0044 / test123',
+            'C22-0045 / test123',
+            'C22-0046 / test123',
+            'C22-0047 / test123',
+            'C22-0048 / test123'
+        ]
+    ]);
+
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>

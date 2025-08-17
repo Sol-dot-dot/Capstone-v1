@@ -1,57 +1,76 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once 'config.php';
 
-// Database connection
-$DB_HOST = 'localhost';
-$DB_NAME = 'capstone_db';
-$DB_USER = 'root';
-$DB_PASS = '';
+echo "=== LOGIN SYSTEM DIAGNOSTIC ===\n\n";
 
 try {
-    $pdo = new PDO("mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4", $DB_USER, $DB_PASS);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Test database connection
+    echo "1. Testing database connection...\n";
+    $stmt = $pdo->query("SELECT 1");
+    echo "✓ Database connection successful\n\n";
     
-    // Create tables if they don't exist
-    $pdo->exec("CREATE TABLE IF NOT EXISTS student_records (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id VARCHAR(20) NOT NULL UNIQUE,
-        first_name VARCHAR(100) DEFAULT 'Test',
-        last_name VARCHAR(100) DEFAULT 'User',
-        course VARCHAR(100) DEFAULT 'BSIT',
-        year_level INT DEFAULT 3
-    )");
-    
-    $pdo->exec("CREATE TABLE IF NOT EXISTS students (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id VARCHAR(20) NOT NULL UNIQUE,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL
-    )");
-    
-    // Insert test data
-    $pdo->exec("INSERT IGNORE INTO student_records (student_id) VALUES ('C22-0044')");
-    
-    $password_hash = password_hash('test123', PASSWORD_BCRYPT);
-    $pdo->exec("INSERT IGNORE INTO students (student_id, email, password_hash) VALUES 
-        ('C22-0044', 'test@example.com', '$password_hash')");
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $student_id = $_POST['student_id'] ?? '';
-        $password = $_POST['password'] ?? '';
+    // Check if students table exists
+    echo "2. Checking students table...\n";
+    $stmt = $pdo->query("SHOW TABLES LIKE 'students'");
+    if ($stmt->rowCount() > 0) {
+        echo "✓ Students table exists\n";
         
-        if ($student_id === 'C22-0044' && $password === 'test123') {
-            echo json_encode(['success' => true, 'message' => 'Login successful']);
-        } else {
-            echo json_encode(['success' => false, 'error' => 'Invalid credentials']);
+        // Check student records
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM students");
+        $count = $stmt->fetch()['count'];
+        echo "✓ Found $count student records\n";
+        
+        if ($count > 0) {
+            // Show sample students
+            $stmt = $pdo->query("SELECT student_id, email, account_status FROM students LIMIT 3");
+            $students = $stmt->fetchAll();
+            echo "Sample students:\n";
+            foreach ($students as $student) {
+                echo "  - {$student['student_id']} ({$student['email']}) - {$student['account_status']}\n";
+            }
         }
     } else {
-        echo json_encode(['success' => true, 'message' => 'Server is running', 'test_login' => 'C22-0044/test123']);
+        echo "✗ Students table does not exist\n";
     }
     
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+    echo "\n3. Checking student_logins table...\n";
+    $stmt = $pdo->query("SHOW TABLES LIKE 'student_logins'");
+    if ($stmt->rowCount() > 0) {
+        echo "✓ Student_logins table exists\n";
+    } else {
+        echo "✗ Student_logins table does not exist\n";
+    }
+    
+    // Test login with known credentials
+    echo "\n4. Testing login functionality...\n";
+    $test_student = 'C22-0044';
+    $test_password = 'test123';
+    
+    $stmt = $pdo->prepare('SELECT password_hash FROM students WHERE student_id = ?');
+    $stmt->execute([$test_student]);
+    $user = $stmt->fetch();
+    
+    if ($user) {
+        echo "✓ Found test student: $test_student\n";
+        if (password_verify($test_password, $user['password_hash'])) {
+            echo "✓ Password verification successful\n";
+        } else {
+            echo "✗ Password verification failed\n";
+            echo "Stored hash: {$user['password_hash']}\n";
+        }
+    } else {
+        echo "✗ Test student not found: $test_student\n";
+        echo "Creating test student...\n";
+        
+        $password_hash = password_hash($test_password, PASSWORD_BCRYPT);
+        $stmt = $pdo->prepare("INSERT INTO students (student_id, email, password_hash, account_status) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$test_student, 'test@example.com', $password_hash, 'active']);
+        echo "✓ Test student created\n";
+    }
+    
+} catch (Exception $e) {
+    echo "✗ Error: " . $e->getMessage() . "\n";
 }
+
+echo "\n=== DIAGNOSTIC COMPLETE ===\n";
 ?>
